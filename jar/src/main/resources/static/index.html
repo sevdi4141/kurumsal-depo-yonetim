@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Depo Yönetim Sistemi</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        
+        /* İstatistik Kartları */
+        .stats-container { display: flex; gap: 20px; margin-bottom: 20px; }
+        .stat-card { flex: 1; background: #007bff; color: white; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-card.green { background: #28a745; }
+        .stat-card h3 { margin: 0 0 10px 0; font-size: 16px; }
+        .stat-card p { margin: 0; font-size: 24px; font-weight: bold; }
+
+        /* Form ve Arama Alanı */
+        .form-panel { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef; }
+        input { padding: 10px; margin: 5px 5px 10px 0; border: 1px solid #ccc; border-radius: 5px; width: calc(33% - 15px); box-sizing: border-box; }
+        .search-bar { width: 100%; margin-bottom: 15px; padding: 12px; font-size: 16px; border: 2px solid #007bff; }
+        
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        button:hover { background-color: #218838; }
+        .btn-sil { background-color: #dc3545; padding: 6px 12px; font-size: 13px; width: auto; }
+        .btn-duzenle { background-color: #ffc107; color: black; padding: 6px 12px; font-size: 13px; width: auto; margin-right: 5px;}
+        
+        /* Tablo */
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #343a40; color: white; }
+        .kritik-stok { background-color: #ffeeba; color: #856404; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center; color: #2c3e50;">📦 Gelişmiş Depo Yönetim Sistemi</h2>
+    
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>Toplam Ürün Çeşidi</h3>
+            <p id="toplamCesit">0</p>
+        </div>
+        <div class="stat-card green">
+            <h3>Toplam Depo Değeri</h3>
+            <p id="toplamDeger">0 ₺</p>
+        </div>
+    </div>
+    
+    <div class="form-panel">
+        <h3 id="formBaslik">Yeni Ürün Ekle</h3>
+        <input type="hidden" id="urunId">
+        <input type="text" id="ad" placeholder="Ürün Adı (Zorunlu)">
+        <input type="number" id="miktar" placeholder="Miktar (Sıfırdan büyük)" min="0">
+        <input type="number" id="fiyat" placeholder="Fiyat (Sıfırdan büyük)" min="0">
+        <button id="kaydetBtn" onclick="urunKaydet()">Ürünü Depoya Ekle</button>
+        <button id="iptalBtn" onclick="formSifirla()" style="display: none; background-color: #6c757d; margin-top: 10px;">İptal Et</button>
+    </div>
+
+    <input type="text" id="aramaKutusu" class="search-bar" onkeyup="tabloFiltrele()" placeholder="🔍 Depoda ürün ara (İsme göre)...">
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Ürün Adı</th>
+                <th>Miktar</th>
+                <th>Fiyat</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody id="urunTablosu">
+            <!-- Ürünler buraya gelecek -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    window.onload = urunleriGetir;
+
+    function urunleriGetir() {
+        fetch('/api/urunler')
+            .then(response => response.json())
+            .then(data => {
+                const tablo = document.getElementById('urunTablosu');
+                tablo.innerHTML = ''; 
+                
+                let toplamDeger = 0;
+                
+                data.forEach(urun => {
+                    toplamDeger += (urun.miktar * urun.fiyat);
+                    // Kritik stok kontrolü (5'in altındaysa satırı sarı/kırmızı yapar)
+                    const satirSinifi = urun.miktar < 5 ? 'kritik-stok' : '';
+                    
+                    tablo.innerHTML += `
+                        <tr class="${satirSinifi}">
+                            <td>${urun.id}</td>
+                            <td class="urun-adi">${urun.ad}</td>
+                            <td>${urun.miktar} ${urun.miktar < 5 ? '⚠️' : ''}</td>
+                            <td>${urun.fiyat} ₺</td>
+                            <td>
+                                <button class="btn-duzenle" onclick="duzenleModu(${urun.id}, '${urun.ad}', ${urun.miktar}, ${urun.fiyat})">Düzenle</button>
+                                <button class="btn-sil" onclick="urunSil(${urun.id})">Sil</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('toplamCesit').innerText = data.length;
+                document.getElementById('toplamDeger').innerText = new Intl.NumberFormat('tr-TR').format(toplamDeger) + " ₺";
+            });
+    }
+
+    function urunKaydet() {
+        const id = document.getElementById('urunId').value;
+        const ad = document.getElementById('ad').value.trim();
+        const miktar = parseInt(document.getElementById('miktar').value);
+        const fiyat = parseFloat(document.getElementById('fiyat').value);
+
+        // Veri Doğrulama (Validation)
+        if (!ad) { alert("Lütfen ürün adını boş bırakmayın!"); return; }
+        if (isNaN(miktar) || miktar < 0) { alert("Miktar sıfırdan küçük olamaz!"); return; }
+        if (isNaN(fiyat) || fiyat < 0) { alert("Fiyat sıfırdan küçük olamaz!"); return; }
+
+        const urunData = { ad, miktar, fiyat };
+
+        // ID varsa Güncelle (PUT), yoksa Ekle (POST)
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/urunler/${id}` : '/api/urunler';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(urunData)
+        }).then(() => {
+            formSifirla();
+            urunleriGetir(); 
+        });
+    }
+
+    function duzenleModu(id, ad, miktar, fiyat) {
+        document.getElementById('urunId').value = id;
+        document.getElementById('ad').value = ad;
+        document.getElementById('miktar').value = miktar;
+        document.getElementById('fiyat').value = fiyat;
+        
+        document.getElementById('formBaslik').innerText = "Ürünü Güncelle";
+        const kaydetBtn = document.getElementById('kaydetBtn');
+        kaydetBtn.innerText = "Değişiklikleri Kaydet";
+        kaydetBtn.style.backgroundColor = "#ffc107";
+        kaydetBtn.style.color = "black";
+        document.getElementById('iptalBtn').style.display = "block";
+    }
+
+    function formSifirla() {
+        document.getElementById('urunId').value = '';
+        document.getElementById('ad').value = '';
+        document.getElementById('miktar').value = '';
+        document.getElementById('fiyat').value = '';
+        
+        document.getElementById('formBaslik').innerText = "Yeni Ürün Ekle";
+        const kaydetBtn = document.getElementById('kaydetBtn');
+        kaydetBtn.innerText = "Ürünü Depoya Ekle";
+        kaydetBtn.style.backgroundColor = "#28a745";
+        kaydetBtn.style.color = "white";
+        document.getElementById('iptalBtn').style.display = "none";
+    }
+
+    function urunSil(id) {
+        if(confirm("Bu ürünü silmek istediğinize emin misiniz?")) {
+            fetch(`/api/urunler/${id}`, { method: 'DELETE' }).then(() => urunleriGetir());
+        }
+    }
+
+    // Canlı Arama (Filtreleme) İşlemi
+    function tabloFiltrele() {
+        const aranan = document.getElementById("aramaKutusu").value.toLowerCase();
+        const satirlar = document.querySelectorAll("#urunTablosu tr");
+
+        satirlar.forEach(satir => {
+            const urunAdi = satir.querySelector(".urun-adi").innerText.toLowerCase();
+            if (urunAdi.includes(aranan)) {
+                satir.style.display = "";
+            } else {
+                satir.style.display = "none";
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
