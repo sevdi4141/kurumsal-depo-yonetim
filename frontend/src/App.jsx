@@ -9,8 +9,7 @@ import {
   Inventory2, Dashboard, AddCircle, Edit, Delete, Warning, Search, History
 } from '@mui/icons-material';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082/api/urunler';
-
+const API_URL = "https://kurumsal-depo-yonetim-production.up.railway.app/api/urunler";
 function GenelBakis({ urunler }) {
   const toplamCesit = urunler.length;
   const toplamDeger = urunler.reduce((acc, u) => acc + (u.miktar * u.fiyat), 0);
