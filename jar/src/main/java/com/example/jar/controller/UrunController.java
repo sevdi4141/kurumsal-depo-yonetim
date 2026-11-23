@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/urunler")
 public class UrunController {
+
 
     @Autowired
     private UrunRepository urunRepository;
