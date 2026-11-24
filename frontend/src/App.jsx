@@ -6,10 +6,60 @@ import {
   TableHead, TableRow, Paper, IconButton, Chip, Box, Alert
 } from '@mui/material';
 import {
-  Inventory2, Dashboard, AddCircle, Edit, Delete, Warning, Search, History
+  Inventory2, Dashboard, AddCircle, Edit, Delete, Warning, Search,
+  History, Download, Lock, Logout
 } from '@mui/icons-material';
 
 const API_URL = "https://kurumsal-depo-yonetim-production.up.railway.app/api/urunler";
+
+function GirisEkrani({ onGirisBasarili }) {
+  const [kullanici, setKullanici] = useState('');
+  const [sifre, setSifre] = useState('');
+  const [hata, setHata] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (kullanici === 'admin' && sifre === '1234') {
+      sessionStorage.setItem('depo_oturum', 'aktif');
+      onGirisBasarili();
+    } else {
+      setHata('Hatalı kullanıcı adı veya şifre! (Varsayılan: admin / 1234)');
+    }
+  };
+
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#eceff1' }}>
+      <Paper elevation={4} sx={{ p: 4, width: '100%', maxWidth: 400, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+          <Lock sx={{ fontSize: 44, color: '#1a237e', mb: 1 }} />
+          <Typography variant="h5" fontWeight="bold" color="#1a237e">
+            Kurumsal Depo Girişi
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Yönetim paneline erişmek için giriş yapın
+          </Typography>
+        </Box>
+
+        {hata && <Alert severity="error" sx={{ mb: 2 }}>{hata}</Alert>}
+
+        <Box component="form" onSubmit={handleLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <TextField
+            label="Kullanıcı Adı" value={kullanici} onChange={(e) => setKullanici(e.target.value)}
+            required fullWidth
+          />
+          <TextField
+            label="Şifre" type="password" value={sifre} onChange={(e) => setSifre(e.target.value)}
+            required fullWidth
+          />
+          <Button type="submit" variant="contained" size="large" sx={{ bgcolor: '#1a237e', mt: 1 }}>
+            Giriş Yap
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
+  );
+}
+
 function GenelBakis({ urunler }) {
   const toplamCesit = urunler.length;
   const toplamDeger = urunler.reduce((acc, u) => acc + (u.miktar * u.fiyat), 0);
@@ -108,6 +158,17 @@ function EnvanterYonetimi({ urunler, verileriYenile }) {
     setFiyat('');
   };
 
+  const excelIndir = () => {
+    const basliklar = ['ID;Ürün Adı;Miktar;Birim Fiyat (TL);Toplam Değer (TL)'];
+    const satirlar = urunler.map(u => `${u.id};${u.ad};${u.miktar};${u.fiyat};${u.miktar * u.fiyat}`);
+    const csvIcerik = '\uFEFF' + [basliklar, ...satirlar].join('\n');
+    const blob = new Blob([csvIcerik], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Depo_Stok_Raporu_${new Date().toLocaleDateString('tr-TR')}.csv`;
+    link.click();
+  };
+
   const filtrelenmisUrunler = urunler.filter(u =>
     u.ad.toLowerCase().includes(arama.toLowerCase())
   );
@@ -142,11 +203,16 @@ function EnvanterYonetimi({ urunler, verileriYenile }) {
         </Box>
       </Paper>
 
-      <TextField
-        fullWidth placeholder="Depoda ürün ara..." value={arama}
-        onChange={(e) => setArama(e.target.value)} sx={{ mb: 2 }}
-        InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'gray' }} /> }}
-      />
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <TextField
+          placeholder="Depoda ürün ara..." value={arama}
+          onChange={(e) => setArama(e.target.value)} sx={{ flexGrow: 1 }} size="small"
+          InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'gray' }} /> }}
+        />
+        <Button variant="outlined" color="primary" startIcon={<Download />} onClick={excelIndir}>
+          Excel Raporu İndir
+        </Button>
+      </Box>
 
       <TableContainer component={Paper}>
         <Table>
@@ -231,6 +297,9 @@ function StokHareketleri({ hareketler }) {
 }
 
 export default function App() {
+  const [girisYapildi, setGirisYapildi] = useState(
+    sessionStorage.getItem('depo_oturum') === 'aktif'
+  );
   const [urunler, setUrunler] = useState([]);
   const [hareketler, setHareketler] = useState([]);
 
@@ -248,8 +317,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    verileriYenile();
-  }, []);
+    if (girisYapildi) {
+      verileriYenile();
+    }
+  }, [girisYapildi]);
+
+  const cikisYap = () => {
+    sessionStorage.removeItem('depo_oturum');
+    setGirisYapildi(false);
+  };
+
+  if (!girisYapildi) {
+    return <GirisEkrani onGirisBasarili={() => setGirisYapildi(true)} />;
+  }
 
   return (
     <Router>
@@ -268,10 +348,13 @@ export default function App() {
           <Button color="inherit" component={Link} to="/hareketler" startIcon={<History />}>
             Stok Hareketleri
           </Button>
+          <Button color="inherit" onClick={cikisYap} startIcon={<Logout />} sx={{ ml: 2, borderLeft: '1px solid rgba(255,255,255,0.3)', pl: 2 }}>
+            Çıkış
+          </Button>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ pb: 5 }}>
         <Routes>
           <Route path="/" element={<GenelBakis urunler={urunler} />} />
           <Route path="/envanter" element={<EnvanterYonetimi urunler={urunler} verileriYenile={verileriYenile} />} />

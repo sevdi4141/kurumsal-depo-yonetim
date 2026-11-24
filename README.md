@@ -1,17 +1,21 @@
-# 📦 Kurumsal Depo ve Envanter Yönetim Sistemi (Full-Stack)
+# Kurumsal Depo Yönetim Sistemi (Full-Stack Inventory Management)
 
-Modern headless mimari prensipleriyle geliştirilmiş; anlık stok takibi, kritik stok uyarıları ve otomatik işlem geçmişi (Audit Log) sunan uçtan uca envanter yönetim platformu.
+Modern işletmeler ve depolar için geliştirilmiş, gerçek zamanlı stok takibi, kritik stok uyarıları, hareket geçmişi ve Excel raporlama özelliklerine sahip uçtan uca (Full-Stack) web uygulaması.
 
-## 🚀 Kullanılan Teknolojiler
-* **Backend:** Java 25, Spring Boot 4, Spring Data JPA / Hibernate, RESTful API
-* **Frontend:** React, Vite, Material UI (MUI), React Router
-* **Veritabanı & DevOps:** MySQL 8, Docker & Docker Compose
+## Canlı Bağlantılar
+- **Frontend (Web Arayüzü):** https://kurumsal-depo-yonetim.vercel.app
+- **Backend API:** https://kurumsal-depo-yonetim-production.up.railway.app/api/urunler
+- **Demo Giriş Bilgileri:** Kullanıcı Adı: `admin` | Şifre: `1234`
 
-## ✨ Öne Çıkan Özellikler
-* **Gerçek Zamanlı Dashboard:** Toplam ürün çeşidi, toplam depo finansal değeri ve kritik stok (<5 adet) uyarı kartları.
-* **Envanter Yönetimi (CRUD):** Dinamik arama, filtreleme, ürün ekleme, güncelleme ve silme işlemleri.
-* **Otomatik Denetim Kaydı (Audit Log):** Depodaki her giriş, güncelleme ve silme işleminin tarih/saat ve detaylarıyla arka planda otomatik loglanması.
+## Kullanılan Teknolojiler
+- **Frontend:** React (Vite), Material-UI (MUI), React Router DOM
+- **Backend:** Java, Spring Boot (Spring Web, Spring Data JPA)
+- **Veritabanı:** MySQL
+- **Dağıtım (Deployment):** Vercel (Frontend) & Railway (Backend + MySQL)
 
-## 🛠️ Kurulum ve Çalıştırma
-```bash
-docker-compose up --build
+## Temel Özellikler
+- **Yönetici Giriş Ekranı:** Yetkisiz erişimi engelleyen oturum kontrolü.
+- **Depo Genel Bakış Paneli:** Toplam ürün çeşidi, anlık toplam depo değeri (₺) ve kritik stok (<5 adet) uyarı kartları.
+- **Envanter Yönetimi (CRUD):** Yeni ürün ekleme, stok/fiyat güncelleme, ürün silme ve anlık arama.
+- **Stok Hareket Geçmişi:** Yapılan tüm ekleme, güncelleme ve silme işlemlerinin tarih/saat damgalı denetim kaydı.
+- **Excel (CSV) Dışa Aktarma:** Mevcut depo envanterini tek tıkla Excel uyumlu rapor olarak indirme.
